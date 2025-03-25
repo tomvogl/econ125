@@ -1,0 +1,40 @@
+---
+title: "ECON 125 Problem Set 1"
+author: "Your name"
+output: html_document # can change to pdf_document if you have LaTeX
+---
+
+```{r, message = FALSE, include = FALSE}
+# This code block sets up the R environment for you
+# You do not need to edit it
+
+# Clear the R environment
+rm(list=ls())
+
+# Load tidyverse
+library(tidyverse)
+
+# Load data into data frame and call it df
+df <- read_csv(url("https://github.com/tomvogl/econ125/raw/main/data/UN_pop_change_country_year.csv"))
+
+# Ask R to only report 2 significant digits
+options(digits = 2)
+```
+
+## Summary statistics for the full dataset
+
+```{r}
+# Replace this text with code that summarizes the population variable.
+```
+
+Replace this text with your explanation of the largest population in the dataset.
+
+## Summary statistics for 1950 and 2023
+
+```{r}
+# Replace this text with code that filters to 1950 and 2023 and summarizes population by year.
+```
+
+Replace this text with your explanation of the largest populations in 1950 and 2023.
+
+## Exam accommodations
