@@ -239,6 +239,7 @@ top5_df <-
          country == "Russian Federation" |
          country == "Japan") |>
   group_by(country) |>
+  arrange(year) |>
   mutate(popgrowth = 100*(lead(pop) - pop)/pop,
          birthrate = 100*births/pop, 
          deathrate = -100*deaths/pop,
