@@ -11,9 +11,6 @@ output: html_document # can change to pdf_document if you have LaTeX
 # Clear the R environment
 rm(list=ls())
 
-# Install tidyverse if not already installed
-install.packages("tidyverse")
-
 # Load tidyverse
 library(tidyverse)
 
