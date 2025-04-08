@@ -1,4 +1,4 @@
-﻿Year,Age,female_pop,male_pop,total_pop,female_deaths,male_deaths,total_deaths
+﻿year,age,female_pop,male_pop,total_pop,female_deaths,male_deaths,total_deaths
 1933,0,984472,1015362,1999834,52616,68438,121054
 1933,1,1040496,1064088,2104584,8917,10329,19246
 1933,2,1093044,1117527,2210571,4337,5140,9477
