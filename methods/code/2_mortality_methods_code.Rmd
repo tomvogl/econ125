@@ -210,12 +210,6 @@ Putting these all together, we obtain a life table
 
 - All other elements are derived from $q_x$ and the initial value of $l_x$
 
-
-![](us_life_table_top.png)
-...
-
-![](us_life_table_bottom.png)
-
 ## Deriving $q_x$
 
 The death probability $q_x$ is a little different from the mortality rate $m_x$
