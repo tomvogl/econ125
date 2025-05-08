@@ -202,7 +202,7 @@ Tabulate fertility continuation after a boy versus after a girl
 Focus on births $\geq 2$ years before survey, to allow time for next pregnancy
 ```{r}
 nfhs4 |> 
-  filter(birth_order>1 & birth_year<=2013) |>
+  filter(birth_year<=2013) |>
   group_by(birth_male) |>
   summarise(share_continue = mean(next_birth))
 ```
