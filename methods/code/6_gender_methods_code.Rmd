@@ -1,0 +1,487 @@
+---
+title: "Week 6 Methods: Gender"
+subtitle: "ECON 125: The Science of Population"
+fontsize: 9pt
+output: html_document
+---
+
+## Setup
+
+Today, we analyze sex ratios, fertility-stopping patterns, and boy-girl mortality differences in India
+
+We use the National Family Health Survey 4, a nationally representative survey of women of childbearing age collected in 2015-26
+
+The dataset includes:
+
+  - Mother-level and birth-level variables
+  
+  - One row for every birth to mothers who responded to the survey
+
+Start by setting up R and loading the first dataset
+```{r, message = FALSE, tidy = FALSE}
+# Load tidyverse and clear the R environment
+library(tidyverse)
+rm(list=ls())
+
+# Load dataset
+nfhs4 <- read_csv(url("https://github.com/tomvogl/econ125/raw/main/data/nfhs4.csv"))
+
+# Ask R to not use scientific notation (not essential)
+options(scipen = 999)
+```
+
+## Variables
+
+`mom_id` = mother's unique identifying number
+
+`mom_age` = mother's age
+
+`mom_kids` = mother's number of children ever born
+
+`birth_order` = birth order
+
+`birth_year` = birth year
+
+`birth_male` = 1 if infant male, 0 if female
+
+`birth_u1` = 1 if infant died before age 1, 0 if survived
+
+## Glimpse
+
+Let's look at the first few rows of the dataset
+
+We'll use `glimpse()` instead of `head()` because the dataset has many columns
+
+`glimpse()` transposes them 
+```{r}
+glimpse(nfhs4)
+```
+## Age of moms
+
+Consider the histogram of mom's age
+```{r, fig.width=5, fig.height=2.5}
+ggplot(nfhs4, aes(x=mom_age)) +
+  geom_histogram(binwidth=1, fill = NA, color = "black")
+```
+Few young women (why?), also note age heaping
+
+## Fertility of moms
+
+Consider the mean number of children ever born
+```{r}
+nfhs4 |> summarise(mean_kids = mean(mom_kids))
+```
+This number is much higher than India's TFR, which is around 2
+
+- Reasons that it would overstate average fertility?
+
+- Reasons that it would understate average fertility?
+
+## Fertility of older moms
+
+Consider the mean number of children ever born to women over 45
+
+Now we will keep only the last observation for each woman
+```{r}
+nfhs4 |> 
+  filter(mom_age>=45 & birth_order==mom_kids) |>
+  summarise(mean_kids = mean(mom_kids))
+```
+Basically the same, despite older sample! 
+
+- Fewer biases here than in the last sample
+
+- But still not the completed fertility rate $\rightarrow$ missing childless women
+
+## Child birth years
+
+Consider the histogram of child birth year
+```{r, fig.width=5, fig.height=2.5}
+ggplot(nfhs4, aes(x=birth_year)) +
+  geom_histogram(binwidth=1, fill = NA, color = "black")
+```
+Most births are in the 2000s and 2010s
+
+## Sex ratio
+
+What is the overall share male at birth?
+```{r}
+nfhs4 |> summarise(share_male = mean(birth_male))
+```
+
+How about the sex ratio at birth?
+```{r}
+nfhs4 |> summarise(ratio = 100*mean(birth_male)/(1 - mean(birth_male)))
+```
+
+The sex ratio at birth is 109 boys per 100 girls
+
+## Birth order
+
+We will want to look at patterns by birth order
+
+Start by tabulating birth orders 1-8
+```{r}
+nfhs4 |> 
+  group_by(birth_order) |> 
+  summarise(n = n(), pct = n/nrow(nfhs4)) |>
+  filter(birth_order<=8)
+```
+Very few kids of birth order 6+, so we will focus on 1-5
+
+
+## Sex ratio by birth order
+
+How does the sex ratio depend on birth order?
+```{r}
+nfhs4 |> 
+  filter(birth_order<6) |>
+  group_by(birth_order) |>
+  summarise(share_male = mean(birth_male),
+            ratio = 100*share_male/(1 - share_male))
+```
+No clear pattern $\rightarrow$ what's going on?
+
+## Sex ratio for first versus most recent birth
+
+The birth order patterns mix mothers with different fertility plans
+
+Might be better to compare first and most recent births
+
+Generate dummy variable for first born
+```{r}
+nfhs4 <-
+  nfhs4 |> 
+  mutate(birth_first = if_else(birth_order==1, 1, 0))
+```
+
+Compare first and most recent births for mothers with at least 2 children
+```{r}
+nfhs4 |> 
+  filter(mom_kids>=2 & (birth_order==1|birth_order==mom_kids)) |>
+  group_by(birth_first) |>
+  summarise(share_male = mean(birth_male),
+            sex_ratio = 100*share_male/(1 - share_male))
+```
+The sex ratio at birth is much higher at the most recent birth
+
+## Sex ratio for by sex of older sibling
+
+Generate dummy variable for the sex of the previous birth
+```{r}
+nfhs4 <-
+  nfhs4 |> 
+  group_by(mom_id) |>
+  arrange(birth_order) |>
+  mutate(older1_male = lag(birth_male)) |>
+  ungroup()
+```
+
+Table by the sex of the the previous birth $\rightarrow$ higher ratio after girl
+```{r}
+nfhs4 |>
+  filter(birth_order>1) |>
+  group_by(older1_male) |>
+  summarise(share_male = mean(birth_male),
+            sex_ratio = 100*share_male/(1 - share_male))
+```
+
+## Son-biased fertility stopping
+
+Parents want sons $\rightarrow$ more likely to continue childbearing after girl
+
+Generate a dummy for whether there is a next birth
+```{r}
+nfhs4 <-
+  nfhs4 |> 
+  mutate(next_birth = if_else(mom_kids>birth_order, 1, 0))
+```
+
+Tabulate fertility continuation after a boy versus after a girl
+
+Focus on births $\geq 2$ years before survey, to allow time for next pregnancy
+```{r}
+nfhs4 |> 
+  filter(birth_order>1 & birth_year<=2013) |>
+  group_by(birth_male) |>
+  summarise(share_continue = mean(next_birth))
+```
+
+## Sex of older siblings
+
+Do these patterns intensify as parents try and try again for a boy?
+
+To answer, let's create variables for the sexes of more older siblings
+```{r}
+nfhs4 <-
+  nfhs4 |> 
+  group_by(mom_id) |>
+  arrange(birth_order) |>
+  mutate(older2_male = lag(birth_male, n=2),
+         older3_male = lag(birth_male, n=3),
+         older4_male = lag(birth_male, n=4)
+         ) |>
+  ungroup()
+```
+
+## Son-biased fertility stopping by birth order: table
+
+Now let's create a new table
+
+- fertility continuation after a boy or girl is born
+
+- only for families that previously only had girls
+```{r, message=FALSE}
+table <-
+ nfhs4 |> 
+ filter(birth_order==1 |
+  birth_order==2&older1_male==0 |
+  birth_order==3&older1_male==0&older2_male==0 |
+  birth_order==4&older1_male==0&older2_male==0&older3_male==0 |
+  birth_order==5&older1_male==0&older2_male==0&older3_male==0&older4_male==0) |>
+ group_by(birth_order, birth_male) |>
+ summarise(share_continue = mean(next_birth))
+```
+
+## Son-biased fertility stopping by birth order: graph
+
+Plot fertility continuation probabilities by birth order
+```{r, fig.width=5, fig.height=2.5}
+ggplot(table, aes(x = birth_order, y = share_continue, color = factor(birth_male))) +
+  geom_line() +
+  geom_point()
+```
+**Huge** diffs in continuation for families that have had many girls, no boys
+
+After 2 girls, birth of another girl raises Pr[another birth] by ~20 pp, or 40\%
+
+## Sibship sizes for firstborn boys and girls: averages
+
+Son-biased fertility stopping results in girls having larger families on average
+
+For a very clean representation, let's look at...
+
+- firstborn boys and girls
+
+- mothers at the end of the reproductive period (45+)
+```{r}
+nfhs4 |> 
+  filter(birth_order==1 & mom_age>=45) |>
+  group_by(birth_male) |>
+  summarise(mean_kids = mean(mom_kids))
+```
+Firstborn girls have 0.5 siblings more than firstborn boys
+
+Fewer resources available per child
+
+## Sibship sizes for firstborn boys and girls: distributions
+
+Instead of the means, let's plot histograms
+
+Start by creating a table
+
+- The piping here is more complicated than usual
+
+- Count number of births with each `birth_male` by `mom_kids` combination
+
+- Compute share for `birth_male==1` separately from `birth_male==0`
+```{r, message=FALSE}
+table <- 
+  nfhs4 |> 
+  filter(birth_order==1 & mom_age>=45) |>
+  group_by(birth_male, mom_kids) |>
+  summarise(n = n()) |>
+  group_by(birth_male) |>
+  mutate(share = n/sum(n))
+```
+
+## Let's look at the table we just created
+
+```{r}
+table
+```
+
+## Sibship sizes for firstborn boys and girls: distributions
+
+Now plot the shares using `geom_line()` and `geom_point()`
+```{r, fig.width=5, fig.height=2.5}
+ggplot(table, aes(x=mom_kids, y=share, color=factor(birth_male))) +
+  geom_line() +
+  geom_point()
+```
+Can see how the distribution of sibship size is shifted to the right for girls
+
+## Sibship sizes for all boys and girls: averages
+
+Now let's check the patterns for **all** boys and girls
+
+```{r}
+nfhs4 |> 
+  group_by(birth_male) |>
+  summarise(mean_kids = mean(mom_kids))
+```
+Still true that girls have larger families than boys on average
+
+Difference is somewhat smaller now, but many families are not complete
+
+## Sibship size and infant mortality
+
+We saw that girls tend to have larger families than boys
+
+I suggested that this pattern adds to their disadvantage through resource dilution
+
+Relationship between sibship size and infant mortality?
+```{r}
+nfhs4 |> 
+  group_by(mom_kids) |> 
+  summarise(mort_rate = mean(birth_u1)) |> 
+  filter(mom_kids<=5)
+```
+Infant mortality much more common in large families!
+
+But is this a causal effect of sibship size? Hint: probably not...
+
+## Sibship size, birth order, and infant mortality
+
+Birth order is intrinsically related to sibship size
+
+Can't be $10^{th}$ born without being in a large family
+
+Consider the following table:
+
+| Sibship size | Possible birth orders         | Average birth order|
+|--------------|-------------------------------|--------------------|
+| 1            | 1                             | 1                  |
+| 2            | 1, 2                          | 1.5                |
+| 3            | 1, 2, 3                       | 2.                 |
+| 4            | 1, 2, 3, 4                    | 2.5                |
+| 5            | 1, 2, 3, 4, 5                 | 3                  |
+| $\vdots$     | $\vdots$                      | $\vdots$           |
+| 10           | 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 | 5.5                |
+
+Or...
+$$\overline{order} = \frac{1}{2} \left(1 + sibsize \right)$$
+implying that sibship size differences may in part reflect birth order differences
+
+## Sibship size, birth order, and infant mortality: table
+
+Let's try to distinguish birth order from sibship size
+
+Note: this exercise is a tangent! We'll get back to studying gender bias soon
+
+Let's make a table of mortality risk by sibship size and birth order
+```{r, message=FALSE}
+table <-
+  nfhs4 |> 
+  group_by(mom_kids, birth_order) |> 
+  summarise(mort_rate = mean(birth_u1)) |>  
+  filter(mom_kids<=5)
+```
+
+## Sibship size, birth order, and infant mortality: graph
+
+Now draw a graph
+```{r, fig.width=5, fig.height=2.5}
+ggplot(table, aes(x=birth_order, y=mort_rate, color=factor(mom_kids))) +
+  geom_line() +
+  geom_point()
+```
+Within a given family size, later-born are **less** likely to die
+
+$\rightarrow$ at a given birth order, family size differences are even **larger**
+
+## Sex differences in infant mortality
+
+Does son preference lead to higher mortality for girls?
+```{r}
+nfhs4 |> 
+  group_by(birth_male) |>
+  summarise(mortality_rate = mean(birth_u1))
+```
+No! Remember that infant boys are naturally more frail than infant girls
+
+## Sibship size, birth order, sex, and infant mortality: table
+
+Let's recreate the most recent graph with separate panels for boys and girls
+
+Same code as before, just adding `birth_male` to the `group_by()` line
+```{r, message=FALSE}
+table <-
+  nfhs4 |> 
+  group_by(mom_kids, birth_order, birth_male) |> 
+  summarise(mort_rate = mean(birth_u1)) |>  
+  filter(mom_kids<=5 & birth_order<=5)
+```
+
+## Sibship size, birth order, sex, and infant mortality: graph
+
+Now let's use `table` to draw separate graphs for boys and girls
+
+```{r, fig.width=5, fig.height=2.5}
+ggplot(table, aes(x=birth_order, y=mort_rate, color=factor(mom_kids))) +
+  geom_line() +
+  geom_point() +
+  facet_wrap(~birth_male)
+```
+Larger diffs in boys' risk across family sizes
+
+## Sex differences in infant mortality following a boy or girl
+
+Let's dig deeper $\rightarrow$ sex diffs in infant mortality by sex of older sibling
+```{r, message=FALSE}
+nfhs4 |> 
+  filter(birth_order>=2) |>
+  group_by(older1_male, birth_male) |>
+  summarise(mortality_rate = mean(birth_u1))
+```
+No mortality gap the older sibling is a sister $\rightarrow$ excess girl mortality
+
+Girls with older sisters are disadvantaged
+
+- Parents who continue after a daughter are more son-biased on average
+
+- Parents may under-invest in daughters' health while they try for a son
+
+## Sex differences in infant mortality by birth order: table
+
+New table by birth order
+
+- infant mortality for boys versus girls
+
+- only for families that previously only had girls
+```{r, message=FALSE}
+table <-
+ nfhs4 |> 
+ filter(birth_order==1 |
+  birth_order==2&older1_male==0 |
+  birth_order==3&older1_male==0&older2_male==0 |
+  birth_order==4&older1_male==0&older2_male==0&older3_male==0 |
+  birth_order==5&older1_male==0&older2_male==0&older3_male==0&older4_male==0) |>
+ group_by(birth_order, birth_male) |>
+ summarise(mort_rate = mean(birth_u1))
+```
+
+## Sex differences in infant mortality by birth order: graph
+
+If many older sisters and no older brothers, girls are more likely to die than boys
+```{r, fig.width=5, fig.height=2.5}
+ggplot(table, aes(x = birth_order, y = mort_rate, color = factor(birth_male))) +
+  geom_line() +
+  geom_point()
+```
+
+## Concluding thoughts
+
+Many patterns consistent with son-preference:
+
+- Lastborns more likely to be boys than firstborns
+
+- After the birth of a girl (rather than a boy)...
+
+  - Parents are more likely to have more another child
+  
+  - Next-born more likely to be a boy
+  
+  - Girl-advantage in infant mortality erased for next-born
+  
+- These patterns intensify after the birth of many girls
