@@ -432,3 +432,59 @@ Another nice way to represent it is with a tabulation of highest level completed
 ```{r}
 mex2020 |> count(edlev) |> mutate(pct = 100*n/sum(n))
 ```
+
+## Sampling Weights
+
+Mexican statistical agency intentionally oversampled sparsely populated areas
+
+- Common practice in survey sampling
+
+- Results in raw sample not being fully representative of the Mexican population
+
+\vspace{0.5cm}
+
+Agency provides **sampling weights** to restore representativeness
+
+- `hhwt` for households and `perwt` for people
+
+- Our analysis was unweighted for simplicity, but easy to incorporate weights
+
+- Instead of `mean(educ)`, use `weighted.mean(educ, perwt)`
+
+- Instead of `count(educ)`, use `count(educ, wt = perwt)`
+
+- I reran the analysis with weights - most results didn't change qualitatively
+
+- In the final two slides, I report two results that did change somewhat
+
+## Weighted Distribution of Education Levels among Mexican Adults
+
+The unweighted distribution of education levels was for the sample, not the pop
+
+If we want to represent the population, we can apply sampling weights as follows
+```{r}
+mex2020 |> count(edlev, wt=perwt) |> mutate(pct = 100*n/sum(n))
+```
+Compared with the unweighted distribution, this weighted distribution has a smaller share with less than primary, and a higher share with secondary or college
+
+PS 4, Q 5, asks about the selectivity of Mexican immigrants to the US
+
+The answer is the same using either the weighted or unweighted distribution
+
+You will get credit for either
+
+
+## Revisiting the Rank Graph
+
+Here is one other place where the results change a bit with weighting
+
+If we estimate the origin-destination marginalization relationship using weights, the qualitative pattern is similar, but the scatterplot looks a bit different
+```{r, fig.width=5, fig.height=2}
+table <- migrants |> 
+  group_by(index_rank5) |> 
+  summarise(avg_index_rank = weighted.mean(index_rank, perwt),
+            total_weight = sum(perwt))
+
+ggplot(table, aes(x=index_rank5, y=avg_index_rank, size = total_weight)) +
+  geom_point()
+```
