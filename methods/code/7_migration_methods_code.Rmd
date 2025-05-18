@@ -469,7 +469,7 @@ Compared with the unweighted distribution, this weighted distribution has a smal
 
 PS 4, Q 5, asks about the selectivity of Mexican immigrants to the US
 
-The answer is the same using either the weighted or unweighted distribution
+The answer is similar using either the weighted or unweighted distribution
 
 You will get credit for either
 
