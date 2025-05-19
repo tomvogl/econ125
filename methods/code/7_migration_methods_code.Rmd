@@ -9,7 +9,7 @@ output: html_document
 
 Today, we analyze Mexican migration
 
-We use a 10\% sample drawn from the 2020 Mexican census
+We use a random sample drawn from the 2020 Mexican census
 
 The main dataset includes:
 
@@ -72,7 +72,7 @@ Key findings
 
 - Less than 1\% of HH members emigrated in last 5 years
 
-- 10\% of HHs received remittances in last 5 years $\rightarrow$ many long-ago emigrants
+- 9\% of HHs received remittances in last 5 years $\rightarrow$ many long-ago emigrants
 
 ## Distribution of Number of Migrants
 
@@ -95,10 +95,9 @@ mex2020_hh |>
   summarise(avg_size = mean(hhsize),
             avg_age = mean(age),
             avg_educ = mean(educ),
-            share_male = mean(male),
-            n = n())
+            share_male = mean(male))
 ```
-HHs with recent emigrants have less educated heads $\rightarrow$ negative selection?
+HHs with emigrants have slightly less educated heads $\rightarrow$ negative selection?
 
 Not so fast $\rightarrow$ more female heads, likely due to endogenous HH structure
 
@@ -115,12 +114,12 @@ mex2020_hh |> count(locsize) |> mutate(pct = 100*n/sum(n))
 
 HHs in smaller (generally more rural) localities more likely to send migrants
 ```{r, fig.width=5, fig.height=2.5}
-table <- 
+tbl <- 
   mex2020_hh |> 
   group_by(locsize) |> 
   summarise(share = mean(anymigrants))
 
-ggplot(table, aes(x=locsize,y=share)) +
+ggplot(tbl, aes(x=locsize,y=share)) +
   geom_col()
 ```
 
@@ -149,18 +148,16 @@ HHs in poorer (but not poorest) areas more likely to send migrants
 ```{r, fig.width=5, fig.height=2.5}
 mex2020_hh <- mex2020_hh |> left_join(marg2020, by = "mun")
 
-table <- mex2020_hh |> group_by(grade) |> 
+tbl <- mex2020_hh |> group_by(grade) |> 
   summarise(share = mean(anymigrants))
 
-ggplot(table, aes(x = grade, y = share)) +
+ggplot(tbl, aes(x = grade, y = share)) +
   geom_col()
 ```
 
 ## Interpretation
 
 Mexican migrants less likely to come from poorest/richest parts of the country
-
-Highest share of migrant-sending households is in "high" marginalization munis
 
 Consistent with the results Abramitzky and Boustan report in their article
 
@@ -183,26 +180,26 @@ mex2020 |> count(country5) |> mutate(pct = 100*n/sum(n)) |> arrange(-n)
 
 Basically all immigrants to Mexico in 2015-2020 came from the US
 
-Unsurprisingly, mostly went to medium marginalization municipalities
+Avoided "very high" marginalization municipalities
 ```{r}
 mex2020 <- mex2020 |> 
   mutate(immigrant = if_else(country5!="Mexico", 1, 0)) |>
   left_join(marg2020, by = "mun")
 
-table <- mex2020 |> 
+tbl <- mex2020 |> 
   group_by(grade) |> 
   summarise(share = mean(immigrant))
 
-table
+tbl
 ```
 
 ## Immigration Shares by Municipality Marginalization: Graph
 
 ```{r, fig.width=5, fig.height=2.5}
-ggplot(table, aes(x = grade, y = share)) +
+ggplot(tbl, aes(x = grade, y = share)) +
   geom_col()
 ```
-Similar to the emigration graph, but some differences
+Some similarities to the emigration graph, but some differences
 
 - More immigrants settling in "very low" than in "very high"
 
@@ -231,7 +228,7 @@ mex2020 <-
 
 ## Internal Migrants: Population Share and Characteristics
 
-5\% of the Mexican adult population moved municipalities during 2015-2020
+6\% of the Mexican adult population moved municipalities during 2015-2020
 ```{r}
 mex2020 |> summarise(share = mean(migrant))
 ```
@@ -250,10 +247,9 @@ Selection! Migrants are younger and more educated than non-migrants
 
 Let's dig into the age-migration relationship a bit more
 ```{r, fig.width=5, fig.height=2.5}
-table <- mex2020 |> group_by(age) |> summarise(share = mean(migrant))
+tbl <- mex2020 |> group_by(age) |> summarise(share = mean(migrant))
 
-ggplot(table, aes(x = age, y = share)) +
-  geom_point() +
+ggplot(tbl, aes(x = age, y = share)) +
   geom_line()
 ```
 
@@ -275,10 +271,9 @@ Cohort effects are likely to be important for confounding role of education
 
 Age is related to education, but this is really a cohort phenomenon
 ```{r, fig.width=5, fig.height=2.5}
-table <- mex2020 |> group_by(age) |> summarise(avg_educ = mean(educ))
+tbl <- mex2020 |> group_by(age) |> summarise(avg_educ = mean(educ))
 
-ggplot(table, aes(x = age, y = avg_educ)) +
-  geom_point() +
+ggplot(tbl, aes(x = age, y = avg_educ)) +
   geom_line()
 ```
 
@@ -286,10 +281,9 @@ ggplot(table, aes(x = age, y = avg_educ)) +
 
 Let's dig into the education-migration relationship a bit more
 ```{r, fig.width=5, fig.height=2.5}
-table <- mex2020 |> group_by(educ) |> summarise(share = mean(migrant))
+tbl <- mex2020 |> group_by(educ) |> summarise(share = mean(migrant))
 
-ggplot(table, aes(x = educ, y = share)) +
-  geom_point() +
+ggplot(tbl, aes(x = educ, y = share)) +
   geom_line()
 ```
 Very clear positive selection
@@ -315,11 +309,11 @@ mex2020 <-
 ## Age and Internal Migration by Education Level
 
 ```{r, fig.width=5, fig.height=2.5, message=FALSE}
-table <- mex2020 |> 
+tbl <- mex2020 |> 
   group_by(edlev, age) |> 
   summarise(share = mean(migrant))
 
-ggplot(table, aes(x = age, y = share, color=edlev)) +
+ggplot(tbl, aes(x = age, y = share, color=edlev)) +
   geom_line()
 ```
 
@@ -339,9 +333,9 @@ But even for individuals in their 60s, migration rates highest for college, then
 
 Do high opportunity areas tend to receive more internal migrants? **Yes**
 ```{r, fig.width=5, fig.height=2.5}
-table <- mex2020 |> group_by(grade) |> summarise(share = mean(migrant))
+tbl <- mex2020 |> group_by(grade) |> summarise(share = mean(migrant))
 
-ggplot(table, aes(x = grade, y = share)) +
+ggplot(tbl, aes(x = grade, y = share)) +
   geom_col()
 ```
 
@@ -368,9 +362,9 @@ mex2020 <- mex2020 |>
 
 Do low opportunity areas tend to send more internal migrants? **No**
 ```{r, fig.width=5, fig.height=2.5}
-table <- mex2020 |> group_by(grade5) |> summarise(share = mean(migrant))
+tbl <- mex2020 |> group_by(grade5) |> summarise(share = mean(migrant))
 
-ggplot(table, aes(x = grade5, y = share)) +
+ggplot(tbl, aes(x = grade5, y = share)) +
   geom_col()
 ```
 
@@ -386,42 +380,30 @@ migrants <- mex2020 |> filter(migrant==1)
 
 table(migrants$grade5, migrants$grade)
 ```
-## Continuous representation
+The rows correspond to origins, and the columns correspond to destinations
 
-Compare marginalization index ranks of origin and destination municipalities
-```{r, fig.width=5, fig.height=2.5}
-table <- migrants |> 
-  group_by(index_rank5) |> 
-  summarise(avg_index_rank = mean(index_rank))
+## Refining the Origin-Destination Matrix
 
-ggplot(table, aes(x=index_rank5, y=avg_index_rank)) +
-  geom_point()
+Easier to interpret with relative frequencies ($\frac{n}{N}$) rather frequencies ($N$) 
+```{r}
+tbl <- table(migrants$grade5, migrants$grade)
+
+round(100*prop.table(tbl), 1)
 ```
-
-## Interpreting origin-destination patterns
-
-Lots of migration between municipalities with similar marginalization ranks
-
-We haven't used GIS data, but some of these munis are geographically close
+65% of internal migration is from "very low" to "very low"
 
 Most internal migration is not "moving to opportunity," but you can find it
 
-Substantial migration from the bottom half of municipalities to the top half
-```{r, fig.width=5, fig.height=2.5, echo=FALSE}
-ggplot(table, aes(x=index_rank5, y=avg_index_rank)) +
-  geom_point() +
-  geom_vline(xintercept = 1234.5, linetype = "solid", color = "red") +
-  geom_hline(yintercept = 1234.5, linetype = "solid", color = "red")
-```
+E.g., "very high" to "very low" twice as likely as "very low" to "very high"
 
-## Distribution of Years of Education among Mexican Adults
+## Distribution of Years of Education Among Mexican Adults
 
 PS 4 asks you to compare the education distributions of Mexican immigrants to the US and Mexicans in Mexico
 
 One way to represent the distribution is with a histogram of years of education
 ```{r, fig.width=5, fig.height=2.5}
-table <- mex2020 |> count(educ) |> mutate(pct = 100*n/sum(n))
-ggplot(table, aes(x=educ, y=pct)) +
+tbl <- mex2020 |> count(educ) |> mutate(pct = 100*n/sum(n))
+ggplot(tbl, aes(x=educ, y=pct)) +
   geom_point() +
   geom_line()
 ```
@@ -429,62 +411,8 @@ ggplot(table, aes(x=educ, y=pct)) +
 ## Distribution of Education Levels among Mexican Adults
 
 Another nice way to represent it is with a tabulation of highest level completed
+
+This table is relevant for your problem set!
 ```{r}
 mex2020 |> count(edlev) |> mutate(pct = 100*n/sum(n))
-```
-
-## Sampling Weights
-
-Mexican statistical agency intentionally oversampled sparsely populated areas
-
-- Common practice in survey sampling
-
-- Results in raw sample not being fully representative of the Mexican population
-
-\vspace{0.5cm}
-
-Agency provides **sampling weights** to restore representativeness
-
-- `hhwt` for households and `perwt` for people
-
-- Our analysis was unweighted for simplicity, but easy to incorporate weights
-
-- Instead of `mean(educ)`, use `weighted.mean(educ, perwt)`
-
-- Instead of `count(educ)`, use `count(educ, wt = perwt)`
-
-- I reran the analysis with weights - most results didn't change qualitatively
-
-- In the final two slides, I report two results that did change somewhat
-
-## Weighted Distribution of Education Levels among Mexican Adults
-
-The unweighted distribution of education levels was for the sample, not the pop
-
-If we want to represent the population, we can apply sampling weights as follows
-```{r}
-mex2020 |> count(edlev, wt=perwt) |> mutate(pct = 100*n/sum(n))
-```
-Compared with the unweighted distribution, this weighted distribution has a smaller share with less than primary, and a higher share with secondary or college
-
-PS 4, Q 5, asks about the selectivity of Mexican immigrants to the US
-
-The answer is similar using either the weighted or unweighted distribution
-
-You will get credit for either
-
-
-## Revisiting the Rank Graph
-
-Here is one other place where the results change a bit with weighting
-
-If we estimate the origin-destination marginalization relationship using weights, the qualitative pattern is similar, but the scatterplot looks a bit different
-```{r, fig.width=5, fig.height=2}
-table <- migrants |> 
-  group_by(index_rank5) |> 
-  summarise(avg_index_rank = weighted.mean(index_rank, perwt),
-            total_weight = sum(perwt))
-
-ggplot(table, aes(x=index_rank5, y=avg_index_rank, size = total_weight)) +
-  geom_point()
 ```
