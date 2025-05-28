@@ -1,0 +1,111 @@
+---
+title: "ECON 125 Problem Set 5"
+author: "Your name"
+output: html_document # can change to pdf_document if you have LaTeX
+---
+
+```{r, message = FALSE, include = FALSE}
+# This code block sets up the R environment for you
+# You do not need to edit it
+
+# Clear the R environment
+rm(list=ls())
+
+# Load tidyverse
+library(tidyverse)
+
+# Load datasets
+load(url("https://github.com/tomvogl/econ125/raw/main/data/enoe.rds"))
+load(url("https://github.com/tomvogl/econ125/raw/main/data/cps.rds"))
+```
+
+## Question 1
+
+Question 1 text here.
+
+```{r}
+# Question 1 code here
+```
+
+\newpage
+
+## Question 2
+
+Question 2 text here.
+
+```{r}
+# Question 2 code here
+```
+
+\newpage
+
+## Question 3
+
+Question 3 text here.
+
+```{r}
+# Question 3 code here
+```
+\newpage
+
+## Question 4
+
+Question 4 text here.
+
+```{r}
+# Question 4 code here
+```
+\newpage
+
+## Question 5
+
+Question 5 text here.
+
+```{r}
+# Question 5 code here
+```
+\newpage
+
+## Question 6
+
+Question 6 text here.
+
+```{r}
+# Question 6 code here
+```
+\newpage
+
+## Question 7
+
+Question 7 text here.
+
+```{r}
+# Question 7 code here
+```
+\newpage
+
+## Question 8
+
+Question 8 text here.
+
+```{r}
+# Question 8 code here
+```
+\newpage
+
+## Question 9
+
+Question 9 text here.
+
+```{r}
+# Question 9 code here
+```
+\newpage
+
+## Question 10
+
+Question 10 text here.
+
+```{r}
+# Question 10 code here
+```
