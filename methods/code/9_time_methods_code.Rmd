@@ -1,0 +1,339 @@
+---
+title: "Week 9 Methods: Time"
+subtitle: "ECON 125: The Science of Population"
+fontsize: 9pt
+output: html_document
+---
+
+## Setup
+
+Today, we analyze data on manufacturing plants in Indonesia:
+
+  - Revenue, value added, capital, materials, and workers
+  
+  - One observation per plant (called a "firm" in the data) per year
+  
+  - Manufacturing Survey of Large and Medium-Sized Firms (*Statistik Industri*)
+
+Start by setting up R and loading the data
+```{r, message = FALSE, tidy = FALSE}
+# Load tidyverse and clear the R environment
+library(tidyverse)
+rm(list=ls())
+
+# Load dataset
+load(url("https://github.com/tomvogl/econ125/raw/main/data/indonesia_firms.rds"))
+
+# Ask R to not use scientific notation
+options(scipen = 999)
+```
+
+## Glimpse
+
+```{r}
+glimpse(indonesia_firms)
+```
+
+## Years
+
+```{r}
+indonesia_firms |> count(year)
+```
+
+## Employment
+
+Lots of interesting variables to consider: employemtn, value of materials, value of capital, revenue, value added
+
+We'll focus on the number of workers because it's easy to interpret without worrying about inflation or exchange rates
+
+Can think about this exercise as if we are starting a new manufacturing plant, and we want to know how many workers we should expect to need
+
+The number of workers per plant is very widely dispersed
+```{r}
+summary(indonesia_firms$workers)
+```
+
+## Employment over Time
+
+```{r}
+indonesia_firms |> 
+  group_by(year) |> 
+  summarise(average = mean(workers), 
+            p25 = quantile(workers, probs = 0.25), 
+            p50 = quantile(workers, probs = 0.50), 
+            p75 = quantile(workers, probs = 0.75))
+```
+
+## Ages of Plants
+
+The time series of average employment does not give us a good idea of how many workers will be working in our new plant over time
+
+We will need to think about each plant's age: years since opening
+
+Age constructed from observing the same plant ID more than once, so only have it for plants that opened after 1990
+```{r}
+summary(indonesia_firms$age)
+```
+
+Plants present in 1990 have `age = NA`, slightly more than half the observations
+```{r}
+nrow(indonesia_firms)
+```
+
+For the rest of the analysis, drop plants if we don't know their ages
+```{r}
+indonesia_firms <- indonesia_firms |> drop_na(age)
+```
+
+## Ages of Plants
+
+To better understand the structure of the data, let's look at plant age by year
+```{r}
+table(indonesia_firms$age, indonesia_firms$year)
+```
+
+Can you see the consequences of the 1997 Asian financial crisis in the table?
+
+Can you see cohorts in the table?
+
+## Ages and Cohorts of Plants
+
+The dataset also has a cohort variable: the year the plant opened (was "born")
+
+Tabulating age and cohort represents the plant life-cycle in an intuitive way
+```{r}
+table(indonesia_firms$age, indonesia_firms$cohort)
+```
+
+## Cross-Sectional Life-Cycles of Plants
+
+Let's return to thinking about how the number of workers varies with plant age
+
+Let's start naively, by looking at cross-sectional patterns in the final year
+```{r}
+tbl <-
+  indonesia_firms |> 
+  filter(year==2000) |> 
+  group_by(age) |>
+  summarise(average = mean(workers),
+            median = median(workers))
+```
+
+## Cross-Sectional Life-Cycle Graph
+
+Both average and median are rising, but slopes are different
+```{r, fig.width=5, fig.height=2.5}
+ggplot(tbl, aes(x=age)) +
+  geom_line(aes(y=average, color = "average")) +
+  geom_line(aes(y=median, color = "median")) +
+  labs(y = "workers")
+```
+
+## Cross-Sectional Life-Cycle Graph: Log Scale
+
+Differing slopes may be because employment growth is proportional to size
+
+In that case, the plots would be parallel with a log scale
+```{r, fig.width=5, fig.height=2.5}
+ggplot(tbl, aes(x=age)) +
+  geom_line(aes(y=average, color = "average")) +
+  geom_line(aes(y=median, color = "median")) +
+  labs(y = "workers") +
+  scale_y_log10()
+```
+
+## Cross-Sectional Growth Rates
+
+Given the parallel results with a log scale, maybe we should plot growth rates
+
+Let's compute the cross-sectional growth rate of the average and median
+```{r}
+tbl <-
+  tbl |> 
+  arrange(age) |> 
+  mutate(average_ratio = average / first(average),
+         median_ratio = median / first(median))
+```
+
+## Cross-Sectional Life-Cycle Graph: Growth Version
+
+Suggests plant size flat for first 5 years, then doubles to triples in next 4
+```{r, fig.width=5, fig.height=2.5}
+ggplot(tbl, aes(x=age)) +
+  geom_line(aes(y=average_ratio, color = "average")) +
+  geom_line(aes(y=median_ratio, color = "median")) +
+  labs(y = "ratio")
+```
+
+## Cohort Life-Cycles of Plants
+
+The cross-sectional patterns may be very misleading
+
+More informative to look at cohorts as they age
+
+For simplicity, we'll focus on averages rather than medians
+```{r, message=FALSE}
+tbl <-
+  indonesia_firms |> 
+  group_by(age, cohort) |>
+  summarise(average = mean(workers))
+```
+
+## Cohort Life-Cycle Graph
+
+```{r, fig.width=5, fig.height=2.5}
+ggplot(tbl, aes(x=age, y=average, color=factor(cohort))) +
+  geom_line() +
+  scale_y_log10()
+```
+Steady growth with age, but lots of variation in starting points
+
+## Cohort Growth Rates
+
+Growth rates will provide easiest comparison of cohort and cross-section
+
+Let's compute the cohort growth rate of average employment
+```{r}
+tbl <-
+  tbl |> 
+  group_by(cohort) |>
+  arrange(age) |> 
+  mutate(average_ratio = average / first(average)) |>
+  ungroup()
+```
+
+## Cohort Life-Cycle Graph: Growth Version
+
+The cross-sectional graph showed a 9-year tripling of the average
+
+The cohort graph shows a doubling
+
+The cross-section overstated employment growth because it ignored cohort effects
+```{r, fig.width=5, fig.height=2.5}
+ggplot(tbl, aes(x=age, y=average_ratio, color=factor(cohort))) +
+  geom_line()
+```
+
+```{r, echo = FALSE}
+# save the plot for later
+plot1 <- ggplot(tbl, aes(x=age, y=average_ratio, color=factor(cohort))) +
+  geom_line()
+```
+
+## Plant Death
+
+Let's look again at our age/cohort table
+
+Do you see plant death?
+```{r}
+table(indonesia_firms$age, indonesia_firms$cohort)
+```
+
+## Plant Survival Function
+
+Can compute survival function, just like in week 2
+
+- Count the number of plants in each age/cohort cell
+
+- Group by cohort
+
+- Compute current number as a share of initial number
+
+- Ungroup
+```{r}
+tbl <- 
+  indonesia_firms |> 
+  count(age, cohort) |>
+  group_by(cohort) |>
+  arrange(age) |> 
+  mutate(share_surviving = n / first(n)) |>
+  ungroup()
+```
+
+## Plant Survival Function
+
+For intuition, let's look at the part of the table for the oldest cohort
+```{r}
+tbl |> filter(cohort==1991)
+```
+
+## Plant Survival Curves
+
+A lot of plants die!
+
+By 9 years, half close down
+
+Alternatively, then median length of operation for a plant is 9 years
+```{r, fig.width=5, fig.height=2.5}
+ggplot(tbl, aes(x=age, y=share_surviving, color=factor(cohort))) +
+  geom_line()
+```
+
+## Reconsidering the Cohort Life-Cycle Graph
+
+Now that we have acknowledged that many plants close, we must admit that the cohort graph did **not** track the same plants over the lifecycle
+
+As plants exit the sample, average may change due to selection, not life-cycle
+```{r, fig.width=5, fig.height=2.5, echo=FALSE}
+plot1
+```
+
+## Selection over the Lifecycle
+
+The issue is that cohorts may change in composition over time
+
+Various drivers of this selection
+
+- Here, it is mortality (or plant closing)
+
+- In Abramitzky and Boustan, it is also return migration
+
+- In other studies, it might be variability in who agrees to participate
+
+In repeated cross-section data (as in PS 5), can't do anything about this issue
+
+In panel data (as we have here), can do more, but no perfect solution
+
+## Addressing Selection
+
+One fix for the selection issue: focus on plants that were present in all years
+
+This approach is perfect, since we are not sure our plant is going to survive
+
+Can implement it here by using `years_in_sample`
+```{r}
+indonesia_firms |> count(years_in_sample)
+```
+
+Let's focus on the firms that were present in every year: "balanced panel"
+
+## Employment Growth in the Balanced Panel
+
+Keep the balanced panel, then compute plant-level employment growth
+```{r, message=FALSE}
+indonesia_firms <-
+  indonesia_firms |> 
+  filter(years_in_sample==10) |>
+  group_by(psid) |>
+  arrange(age) |> 
+  mutate(ratio = workers / first(workers)) |>
+  ungroup()
+```
+
+Now compute average ratio
+```{r, message=FALSE}
+tbl <-
+  indonesia_firms |> 
+  group_by(age) |>
+  summarise(average_ratio = mean(ratio))
+```
+
+## Graph of Employment Growth in the Balanced Panel
+
+The graph shows 2.5x employment growth, between the two sets of earlier results
+
+Reflects growth of plants that started in 1991 and kept running through 2000
+```{r, fig.width=5, fig.height=2.5}
+ggplot(tbl, aes(x=age, y=average_ratio)) +
+  geom_line()
+```
